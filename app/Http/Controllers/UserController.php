@@ -19,16 +19,16 @@ class UserController extends Controller
         $validator = Validator::make($request->all(),
             [
                 'name' => 'required',
-                'email' => 'required',
+                'email' => 'required|unique:users',
                 'password' => 'required',
-                'user_type' => 'required'
+                'user_type' => 'required|in:1,2'
             ]
         );
 
         // if validation fails
         if ($validator->fails()) {
 
-            return response()->json(["validation errors" => $validator->errors()]);
+            return response()->json(["success" => false, "status" => 400, "msg" => $validator->errors()]);
 
         }
 
@@ -40,7 +40,7 @@ class UserController extends Controller
         );
 
         $user = User::create($input);
-        return response()->json(["success" => true, "status" => "success", "user" => $user]);
+        return response()->json(["success" => true, "status" => 200, "user" => $user]);
 
     }
 
@@ -69,7 +69,7 @@ class UserController extends Controller
 
         if (is_null($user)) {
 
-            return response()->json(["success" => false, "message" => "Email doesn't exist"]);
+            return response()->json(["success" => false, "msg" => "Email doesn't exist"]);
 
         }
 
@@ -79,7 +79,8 @@ class UserController extends Controller
 
             $token = $user->createToken('token')->accessToken;
             $success['success'] = true;
-            $success['message'] = "Success! you are logged in successfully";
+            $success['msg'] = "Success! you are logged in successfully";
+            $success['user']  = $user;
             $success['token'] = $token;
 
             return response()->json(['success' => $success], $this->success_status);
