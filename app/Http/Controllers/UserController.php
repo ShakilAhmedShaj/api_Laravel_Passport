@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use App\User;
 
 class UserController extends Controller
 {
@@ -19,16 +19,15 @@ class UserController extends Controller
         $validator = Validator::make($request->all(),
             [
                 'name' => 'required',
-                'email' => 'required|unique:users',
-                'password' => 'required',
-                'user_type' => 'required|in:1,2'
+                'email' => 'required',
+                'password' => 'required'
             ]
         );
 
         // if validation fails
         if ($validator->fails()) {
 
-            return response()->json(["success" => false, "status" => 400, "msg" => $validator->errors()]);
+            return response()->json(["validation errors" => $validator->errors()]);
 
         }
 
@@ -36,11 +35,12 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'user_type' => $request->user_type
+            'type' => "admin",
+            'role' => "admin"
         );
 
         $user = User::create($input);
-        return response()->json(["success" => true, "status" => 200, "user" => $user]);
+        return response()->json(["success" => true, "status" => "success", "user" => $user]);
 
     }
 
@@ -53,7 +53,6 @@ class UserController extends Controller
             [
                 'email' => 'required',
                 'password' => 'required',
-                //'user_type' => 'required',
             ]
         );
 
@@ -69,7 +68,7 @@ class UserController extends Controller
 
         if (is_null($user)) {
 
-            return response()->json(["success" => false, "msg" => "Email doesn't exist"]);
+            return response()->json(["success" => false, "message" => "Email doesn't exist"]);
 
         }
 
@@ -79,8 +78,7 @@ class UserController extends Controller
 
             $token = $user->createToken('token')->accessToken;
             $success['success'] = true;
-            $success['msg'] = "Success! you are logged in successfully";
-            $success['user']  = $user;
+            $success['message'] = "Success! you are logged in successfully";
             $success['token'] = $token;
 
             return response()->json(['success' => $success], $this->success_status);
@@ -91,7 +89,7 @@ class UserController extends Controller
     }
 
 
-    // ---------------------------- [ Use Detail ] -------------------------------
+    // ---------------------------- [ User Detail ] -------------------------------
     public function userDetail()
     {
 
@@ -140,8 +138,50 @@ class UserController extends Controller
 
         $user = Auth::user();
 
-        $user = User::findOrFail($user->id);
-        $user->delete();
-        return response()->json(['success' => true, 'message' => 'User deleted successfully']);
+        $typeUser = User::findOrFail($user->id);
+
+        // if enter user is not admin
+        if($typeUser->is_admin == 0 && $typeUser->role == "user") {
+            $typeUser->delete();
+            return response()->json(['success' => true, "status" => "success", "message" => "User deleted successfully"]);
+        }
+        else
+        {
+            return response()->json(["success" => false, "status" => "failed", "message" => "Dont have permission"]);
+        }
+
+
+    }
+
+    // ----------------------------- [ Delete User As Admin ] -----------------------------
+    public function deleteUserAsAdmin($id)
+    {
+
+        $user = Auth::user();
+
+        if (!is_null($user)) {
+
+            //check if Super Admin
+
+            if (($user->is_admin == 1) && ($user->user_type == 1) && ($user->role == "admin")) {
+
+                $typeUser           =           User::findOrFail($id);
+
+                if(is_null($typeUser)) {
+                    return response()->json(["success" => false, "status" => "failed", "message" => "Whoops! user doesn't exist"]);
+                }
+
+                // if enter user is not admin
+                if($typeUser->is_admin == 0 && $typeUser->role == "user") {
+                    $typeUser->delete();
+                    return response()->json(['success' => true, "status" => "success", "message" => "User deleted successfully"]);
+                }
+
+
+
+            }
+
+
+        }
     }
 }

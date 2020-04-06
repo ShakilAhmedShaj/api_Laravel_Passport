@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Task;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -57,24 +58,49 @@ class TaskController extends Controller
     {
         $user       =   Auth::user();
         $tasks       =   Task::where('user_id', $user->id)->get();
-        
+        //$tasks       =   Task::all();
+
         $success['status']  =   "success";
         $success['data']    =   $tasks;
-    
+
 
         return response()->json(['success' => $success]);
     }
 
-    
-    
+
+    // --------------- [ Task Listing Based on User Auth Token ] ------------
+    public function allTaskListAsAdmin()
+    {
+        $user = Auth::user();
+
+        if (!is_null($user)) {
+
+            //check if Super Admin
+            if (($user->is_admin == 1) && ($user->user_type == 1) && ($user->role == "admin")) {
+                $tasks       =   Task::all();
+                $success['status']  =   "success";
+                $success['data']    =   $tasks;
+
+                return response()->json(['success' => $success]);
+            }
+            else
+            {
+                return response()->json(['success' => false, 'message' => 'Dont have permission']);
+            }
+        }
+    }
+
+
+
+
 // ---------------------- [ Task Detail ] -----------------------
-    
+
     public function taskDetail($task_id)
     {
         $user           =       Auth::user();
 
         $task           =       Task::where("id",$task_id)->where('user_id', $user->id)->first();
-        
+
         if(!is_null($task)) {
 
             $success['status']  =   "success";
@@ -90,9 +116,9 @@ class TaskController extends Controller
         }
     }
 
-    
+
 // ------------------ [ Update Task ] --------------
-    
+
     public function updateTask(Request $request)
     {
         $user       =       Auth::user();
@@ -114,12 +140,12 @@ class TaskController extends Controller
 
         $inputData      =       array(
             'task_title'        =>      $request->task_title,
-            'category'          =>      $request->category,  
+            'category'          =>      $request->category,
             'description'       =>      $request->description
         );
 
         $task       =   Task::where('id', $request->task_id)->where('user_id', $user->id)->update($inputData);
-        
+
         if($task == 1) {
             $success['status']      =       "success";
             $success['message']     =       "Task has been updated successfully";
@@ -129,25 +155,47 @@ class TaskController extends Controller
             $success['status']      =       "failed";
             $success['message']     =       "Failed to update the task please try again";
         }
-        
-        return response()->json(['success' => $success], $this->success_status);       
-        
+
+        return response()->json(['success' => $success], $this->success_status);
+
     }
 
-
     // ---------------------- [ Delete Task ] --------------------------
-    public function deleteTask($id) {
+    public function deleteTask($task_id) {
 
         $user       =       Auth::user();
-        $task       =       Task::findOrFail($id);
+
+        $task       =       Task::where("id",$task_id)->where('user_id', $user->id)->first();
 
         if(!is_null($task)) {
-            $response   =   Task::where('id', $id)->delete();
+            $response   =   Task::where('id', $task_id)->delete();
             if($response == 1) {
                 $success['status']  =   'success';
                 $success['message'] =   'Task has been deleted successfully';
                 return response()->json(['success' => $success], $this->success_status);
             }
         }
+        else
+        {
+            return response()->json(['success' => false, 'message' => 'Dont have permission']);
+        }
     }
+
+
+
+//    // ---------------------- [ Delete Task ] --------------------------
+//    public function deleteTask($id) {
+//
+//        $user       =       Auth::user();
+//        $task       =       Task::findOrFail($id);
+//
+//        if(!is_null($task)) {
+//            $response   =   Task::where('id', $id)->delete();
+//            if($response == 1) {
+//                $success['status']  =   'success';
+//                $success['message'] =   'Task has been deleted successfully';
+//                return response()->json(['success' => $success], $this->success_status);
+//            }
+//        }
+//    }
 }

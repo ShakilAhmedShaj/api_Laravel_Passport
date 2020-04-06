@@ -31,23 +31,27 @@ Route::post('user-login', 'UserController@loginUser');
 
 
 Route::group(['middleware' => 'auth:api'], function () {
-    
+
     Route::get('user-detail', 'UserController@userDetail');
 
     Route::post('update-user', 'UserController@update');
 
     Route::delete('delete-user', 'UserController@deleteUser');
 
+    Route::delete('delete-user/{userId}', 'UserController@deleteUserAsAdmin');
+
     Route::post('create-task', 'TaskController@createTask');
 
     Route::get('task-listing', 'TaskController@taskListing');
+
+    Route::get('all-tasks', 'TaskController@allTaskListAsAdmin');
 
     Route::get('task-detail/{task_id}', 'TaskController@taskDetail');
 
     Route::post('update-task', 'TaskController@updateTask');
 
     Route::delete('delete-task/{task_id}', 'TaskController@deleteTask');
-    
+
 
 });
 
